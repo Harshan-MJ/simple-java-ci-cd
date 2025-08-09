@@ -2,31 +2,45 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_USER = credentials('dockerhub-username') // Jenkins credentials ID
-        DOCKER_PASS = credentials('dockerhub-password')
+        // Link to Jenkins credentials ID
+        DOCKERHUB = credentials('dockerhub-creds')
     }
 
     stages {
         stage('Checkout') {
             steps {
-                git 'https://github.com/<your-username>/<repo-name>.git'
+                git branch: 'main', url: 'https://github.com/Harshan-MJ/simple-java-ci-cd.git'
             }
         }
 
-        stage('Build') {
+        stage('Build Java App') {
             steps {
-                sh 'mvn clean package'
+                sh 'javac HelloWorld.java'
             }
         }
 
-        stage('Docker Build & Push') {
+        stage('Build Docker Image') {
             steps {
-                sh '''
-                docker build -t $DOCKER_USER/hello-world:latest .
-                echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
-                docker push $DOCKER_USER/hello-world:latest
-                '''
+                sh 'docker build -t $DOCKERHUB_USR/simple-java-ci-cd:latest .'
             }
+        }
+
+        stage('Login to DockerHub') {
+            steps {
+                sh 'echo $DOCKERHUB_PSW | docker login -u $DOCKERHUB_USR --password-stdin'
+            }
+        }
+
+        stage('Push to DockerHub') {
+            steps {
+                sh 'docker push $DOCKERHUB_USR/simple-java-ci-cd:latest'
+            }
+        }
+    }
+
+    post {
+        always {
+            sh 'docker logout'
         }
     }
 }

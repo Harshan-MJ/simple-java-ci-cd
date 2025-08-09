@@ -2,7 +2,6 @@ pipeline {
     agent any
 
     environment {
-        // Link to Jenkins credentials ID
         DOCKERHUB = credentials('dockerhub-creds')
     }
 
@@ -13,34 +12,32 @@ pipeline {
             }
         }
 
-        stage('Build Java App') {
+        stage('Build JAR with Maven') {
             steps {
-                sh 'javac HelloWorld.java'
+                sh 'mvn clean package'
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t $DOCKERHUB_USR/simple-java-ci-cd:latest .'
-            }
-        }
-
-        stage('Login to DockerHub') {
-            steps {
-                sh 'echo $DOCKERHUB_PSW | docker login -u $DOCKERHUB_USR --password-stdin'
+                sh "docker build -t ${DOCKERHUB_USR}/simple-java-app:latest ."
             }
         }
 
         stage('Push to DockerHub') {
             steps {
-                sh 'docker push $DOCKERHUB_USR/simple-java-ci-cd:latest'
+                sh "echo ${DOCKERHUB_PSW} | docker login -u ${DOCKERHUB_USR} --password-stdin"
+                sh "docker push ${DOCKERHUB_USR}/simple-java-app:latest"
             }
         }
     }
 
     post {
-        always {
-            sh 'docker logout'
+        success {
+            echo 'Pipeline completed successfully!'
+        }
+        failure {
+            echo 'Pipeline failed. Check the logs for details.'
         }
     }
 }
